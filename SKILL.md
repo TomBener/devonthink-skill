@@ -32,6 +32,83 @@ osascript -l JavaScript << 'EOF'
 EOF
 ```
 
+## Common Workflows
+
+### 1. Get Citation Key of a DEVONthink Record
+
+Given a DEVONthink record, find its Zotero citation key:
+
+```bash
+# Using the record's file path
+python3 scripts/bib_lookup.py --path "~/Library/Mobile Documents/com~apple~CloudDocs/Zotero/Pastoralism/journalArticle/Gkartzios - 2023 - Editorial. Counterurbanisation, Again.pdf"
+```
+
+**Output:**
+
+```json
+{
+  "success": true,
+  "citationKey": "gkartzios2023",
+  "title": "Editorial. Counterurbanisation, again..."
+}
+```
+
+### 2. Find DEVONthink Record by Citation Key
+
+Given a citation key (e.g., `@gkartzios2023`), find the matching DEVONthink record:
+
+```bash
+python3 scripts/bib_lookup.py --citation-key "gkartzios2023" --find-devonthink
+```
+
+**Output:**
+
+```json
+{
+  "success": true,
+  "citationKey": "gkartzios2023",
+  "title": "Editorial. Counterurbanisation, again...",
+  "devonthinkRecords": [
+    {
+      "uuid": "E1DF0C33-D4C8-4ECA-9890-81B012EFDD49",
+      "name": "Gkartzios - 2023 - Editorial. Counterurbanisation, Again",
+      "path": "~/Library/Mobile Documents/com~apple~CloudDocs/Zotero/Pastoralism/journalArticle/Gkartzios - 2023 - Editorial....pdf",
+      "recordType": "PDF document"
+    }
+  ]
+}
+```
+
+### 3. Get Full Content of a DEVONthink Record
+
+Read the full text of any record (PDF, markdown, HTML, etc.). DEVONthink automatically extracts/OCRs text from PDFs.
+
+```bash
+osascript -l JavaScript << 'EOF'
+(() => {
+  const app = Application("DEVONthink");
+  try {
+    const record = app.getRecordWithUuid("E1DF0C33-D4C8-4ECA-9890-81B012EFDD49");
+    if (!record) {
+      return JSON.stringify({ success: false, error: "Record not found" });
+    }
+    const result = {};
+    result["name"] = record.name();
+    result["recordType"] = record.recordType();
+    result["plainText"] = record.plainText();
+    return JSON.stringify(result);
+  } catch (e) {
+    return JSON.stringify({ success: false, error: e.toString() });
+  }
+})();
+EOF
+```
+
+**Tip:** Combine workflows 2 and 3 to read a document by citation key:
+
+1. `bib_lookup.py --citation-key "gkartzios2023" --find-devonthink` → get UUID
+2. Use UUID in JXA script → get full text content
+
 ## Core Operations
 
 ### Search Records
@@ -132,7 +209,7 @@ children.forEach(child => {
 ## Record Properties
 
 | Property | Type | R/W | Description |
-|----------|------|-----|-------------|
+| ---------- | ------ | ----- | ------------- |
 | `id` | Number | R | Database-specific ID |
 | `uuid` | String | R | Globally unique identifier |
 | `name` | String | RW | Record name |
